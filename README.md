@@ -9,11 +9,11 @@ Official Node.js/TypeScript SDK for the [FormaTex](https://formatex.io) LaTeX-to
 ## Installation
 
 ```bash
-npm install formatex
+npm install formatex-sdk
 # or
-pnpm add formatex
+pnpm add formatex-sdk
 # or
-yarn add formatex
+yarn add formatex-sdk
 ```
 
 ## Quick Start

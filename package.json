@@ -1,5 +1,5 @@
 {
-  "name": "formatex",
+  "name": "formatex-sdk",
   "version": "1.0.0",
   "description": "Official Node.js SDK for the FormaTex LaTeX-to-PDF compilation API",
   "keywords": [
@@ -13,7 +13,7 @@
   "homepage": "https://formatex.io",
   "repository": {
     "type": "git",
-    "url": "https://github.com/forma-tex/node-sdk.git"
+    "url": "https://github.com/forma-tex/npm-sdk.git"
   },
   "license": "MIT",
   "author": "FormaTex",
