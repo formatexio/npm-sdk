@@ -1,0 +1,48 @@
+{
+  "name": "formatex",
+  "version": "1.0.0",
+  "description": "Official Node.js SDK for the FormaTex LaTeX-to-PDF compilation API",
+  "keywords": [
+    "latex",
+    "pdf",
+    "compilation",
+    "formatex",
+    "tex",
+    "typesetting"
+  ],
+  "homepage": "https://formatex.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forma-tex/node-sdk.git"
+  },
+  "license": "MIT",
+  "author": "FormaTex",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.2",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
