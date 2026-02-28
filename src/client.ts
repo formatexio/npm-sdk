@@ -88,7 +88,7 @@ export class FormaTexClient {
 
   // ── HTTP helpers ────────────────────────────────────────────────────────────
 
-  private async _request(method: string, path: string, body?: unknown): Promise<Response> {
+  private async _request(method: string, path: string, body?: unknown, accept?: string): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -98,6 +98,7 @@ export class FormaTexClient {
         headers: {
           "X-API-Key": this.apiKey,
           ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(accept !== undefined ? { "Accept": accept } : {}),
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal: controller.signal,
@@ -131,7 +132,7 @@ export class FormaTexClient {
   }
 
   private async _getJson<T = Record<string, unknown>>(path: string): Promise<T> {
-    const resp = await this._request("GET", path);
+    const resp = await this._request("GET", path, undefined, "application/json");
     await this._raiseForStatus(resp);
     return resp.json() as Promise<T>;
   }
@@ -143,7 +144,7 @@ export class FormaTexClient {
   }
 
   private async _postJson<T = Record<string, unknown>>(path: string, body: unknown): Promise<T> {
-    const resp = await this._request("POST", path, body);
+    const resp = await this._request("POST", path, body, "application/json");
     await this._raiseForStatus(resp);
     return resp.json() as Promise<T>;
   }
