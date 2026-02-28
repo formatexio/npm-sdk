@@ -42,8 +42,7 @@ var PlanLimitError = class extends FormaTexError {
 };
 
 // src/client.ts
-var DEFAULT_BASE_URL = typeof process !== "undefined" && process.env?.FORMATEX_BASE_URL || "https://api.formatex.io";
-var STAGING_BASE_URL = "https://api-test.formatex.zedmed.online";
+var DEFAULT_BASE_URL = "https://api.formatex.io";
 function fileEntry(name, content) {
   if (Buffer.isBuffer(content)) {
     return { name, content: content.toString("base64") };
@@ -54,13 +53,7 @@ var FormaTexClient = class {
   constructor(apiKey, options = {}) {
     this.apiKey = apiKey;
     this.timeoutMs = options.timeout ?? 12e4;
-    if (options.baseUrl) {
-      this.baseUrl = options.baseUrl.replace(/\/$/, "");
-    } else if (options.staging) {
-      this.baseUrl = STAGING_BASE_URL;
-    } else {
-      this.baseUrl = DEFAULT_BASE_URL;
-    }
+    this.baseUrl = DEFAULT_BASE_URL;
   }
   // ── HTTP helpers ────────────────────────────────────────────────────────────
   async _request(method, path, body, accept) {
@@ -377,7 +370,6 @@ exports.FormaTexClient = FormaTexClient;
 exports.FormaTexError = FormaTexError;
 exports.PlanLimitError = PlanLimitError;
 exports.RateLimitError = RateLimitError;
-exports.STAGING_BASE_URL = STAGING_BASE_URL;
 exports.fileEntry = fileEntry;
 //# sourceMappingURL=index.cjs.map
 //# sourceMappingURL=index.cjs.map

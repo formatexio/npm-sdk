@@ -123,13 +123,6 @@ export interface WaitOptions {
 
 /** Constructor options for {@link FormaTexClient}. */
 export interface FormaTexClientOptions {
-  /**
-   * Override the API base URL. Takes precedence over `staging`.
-   * Defaults to `process.env.FORMATEX_BASE_URL` or `https://api.formatex.io`.
-   */
-  baseUrl?: string;
-  /** Point to the staging server (`https://api-test.formatex.zedmed.online`). */
-  staging?: boolean;
   /** Request timeout in milliseconds (default: 120_000). */
   timeout?: number;
 }

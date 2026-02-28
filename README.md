@@ -45,8 +45,6 @@ Get an API key from the [FormaTex dashboard](https://app.formatex.io).
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `baseUrl` | `string` | `FORMATEX_BASE_URL` env or `https://api.formatex.io` | Override the API base URL |
-| `staging` | `boolean` | `false` | Use the staging server |
 | `timeout` | `number` | `120_000` | Request timeout in milliseconds |
 
 ---
@@ -198,14 +196,6 @@ try {
   }
 }
 ```
-
----
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `FORMATEX_BASE_URL` | Override the default API base URL |
 
 ---
 

@@ -22,11 +22,7 @@ import type {
   FormaTexClientOptions,
 } from "./types.js";
 
-export const DEFAULT_BASE_URL: string =
-  (typeof process !== "undefined" && process.env?.FORMATEX_BASE_URL) ||
-  "https://api.formatex.io";
-
-export const STAGING_BASE_URL = "https://api-test.formatex.zedmed.online";
+export const DEFAULT_BASE_URL = "https://api.formatex.io";
 
 /**
  * Build a companion-file entry for multi-file compilation.
@@ -76,14 +72,7 @@ export class FormaTexClient {
   constructor(apiKey: string, options: FormaTexClientOptions = {}) {
     this.apiKey = apiKey;
     this.timeoutMs = options.timeout ?? 120_000;
-
-    if (options.baseUrl) {
-      this.baseUrl = options.baseUrl.replace(/\/$/, "");
-    } else if (options.staging) {
-      this.baseUrl = STAGING_BASE_URL;
-    } else {
-      this.baseUrl = DEFAULT_BASE_URL;
-    }
+    this.baseUrl = DEFAULT_BASE_URL;
   }
 
   // ── HTTP helpers ────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-export { FormaTexClient, fileEntry, DEFAULT_BASE_URL, STAGING_BASE_URL } from "./client.js";
+export { FormaTexClient, fileEntry, DEFAULT_BASE_URL } from "./client.js";
 export {
   FormaTexError,
   AuthenticationError,

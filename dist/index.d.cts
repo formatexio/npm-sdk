@@ -110,19 +110,11 @@ interface WaitOptions {
 }
 /** Constructor options for {@link FormaTexClient}. */
 interface FormaTexClientOptions {
-    /**
-     * Override the API base URL. Takes precedence over `staging`.
-     * Defaults to `process.env.FORMATEX_BASE_URL` or `https://api.formatex.io`.
-     */
-    baseUrl?: string;
-    /** Point to the staging server (`https://api-test.formatex.zedmed.online`). */
-    staging?: boolean;
     /** Request timeout in milliseconds (default: 120_000). */
     timeout?: number;
 }
 
-declare const DEFAULT_BASE_URL: string;
-declare const STAGING_BASE_URL = "https://api-test.formatex.zedmed.online";
+declare const DEFAULT_BASE_URL = "https://api.formatex.io";
 /**
  * Build a companion-file entry for multi-file compilation.
  *
@@ -291,4 +283,4 @@ declare class PlanLimitError extends FormaTexError {
     constructor(message: string, statusCode?: number, body?: Record<string, unknown>);
 }
 
-export { type AsyncJob, AuthenticationError, CompilationError, type CompileOptions, type CompileResult, type ConvertOptions, type ConvertResult, DEFAULT_BASE_URL, type FileEntry, FormaTexClient, type FormaTexClientOptions, FormaTexError, type JobResult, type LintDiagnostic, type LintResult, PlanLimitError, RateLimitError, STAGING_BASE_URL, type SmartCompileOptions, type SyntaxResult, type UsageStats, type WaitOptions, fileEntry };
+export { type AsyncJob, AuthenticationError, CompilationError, type CompileOptions, type CompileResult, type ConvertOptions, type ConvertResult, DEFAULT_BASE_URL, type FileEntry, FormaTexClient, type FormaTexClientOptions, FormaTexError, type JobResult, type LintDiagnostic, type LintResult, PlanLimitError, RateLimitError, type SmartCompileOptions, type SyntaxResult, type UsageStats, type WaitOptions, fileEntry };

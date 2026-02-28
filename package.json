@@ -1,6 +1,6 @@
 {
   "name": "formatex-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official Node.js SDK for the FormaTex LaTeX-to-PDF compilation API",
   "keywords": [
     "latex",
