@@ -1,6 +1,9 @@
-# FormaTex Node.js SDK
+# FormatEx Node.js / TypeScript SDK
 
-Official Node.js/TypeScript SDK for the [FormaTex](https://formatex.io) LaTeX-to-PDF compilation API.
+[![npm version](https://img.shields.io/npm/v/formatex-sdk)](https://www.npmjs.com/package/formatex-sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Official Node.js / TypeScript SDK for the [FormatEx](https://formatex.io) LaTeX-to-PDF API.
 
 ## Requirements
 
@@ -35,7 +38,7 @@ writeFileSync("output.pdf", result.pdf);
 console.log(`PDF ready: ${result.sizeBytes} bytes in ${result.durationMs}ms`);
 ```
 
-Get an API key from the [FormaTex dashboard](https://app.formatex.io).
+Get an API key from the [FormatEx dashboard](https://app.formatex.io).
 
 ---
 
@@ -74,7 +77,7 @@ const result = await client.compile(latex, {
 
 #### `client.compileSmart(latex, options?)` → `CompileResult`
 
-Auto-detects the best engine from `\usepackage` declarations.
+Auto-detects the best engine from `\usepackage` declarations and fixes common LLM-generated errors.
 
 ```ts
 const result = await client.compileSmart(latex);
@@ -198,6 +201,13 @@ try {
 ```
 
 ---
+
+## Links
+
+- [FormatEx Website](https://formatex.io)
+- [API Documentation](https://formatex.io/docs/api)
+- [Dashboard](https://app.formatex.io)
+- [Status](https://formatex.io/status)
 
 ## License
 
