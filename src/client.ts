@@ -638,7 +638,7 @@ export class FormaTexClient {
    * @param latex - Full LaTeX source.
    */
   async wordCount(latex: string): Promise<WordCountResult> {
-    const data = await this._postJson<WordCountResult>("/api/v1/wordcount", { latex });
+    const data = await this._postJson<WordCountResult>("/api/v1/analyze/wordcount", { latex });
     return data;
   }
 
@@ -650,7 +650,7 @@ export class FormaTexClient {
    * @param latex - Full LaTeX source.
    */
   async extractDependencies(latex: string): Promise<DependenciesResult> {
-    const data = await this._postJson<DependenciesResult>("/api/v1/dependencies", { latex });
+    const data = await this._postJson<DependenciesResult>("/api/v1/analyze/dependencies", { latex });
     return data;
   }
 
@@ -662,7 +662,7 @@ export class FormaTexClient {
    */
   async checkPackages(names: string[]): Promise<PackageStatus[]> {
     const joined = encodeURIComponent(names.join(","));
-    const data = await this._getJson<{ packages: PackageStatus[] }>(`/api/v1/packages?names=${joined}`);
+    const data = await this._getJson<{ packages: PackageStatus[] }>(`/api/v1/analyze/packages?names=${joined}`);
     return data.packages ?? [];
   }
 
@@ -678,7 +678,7 @@ export class FormaTexClient {
    * @param latex - Full LaTeX source.
    */
   async extractMetadata(latex: string): Promise<DocumentMetadata> {
-    const data = await this._postJson<DocumentMetadata>("/api/v1/extract/metadata", { latex });
+    const data = await this._postJson<DocumentMetadata>("/api/v1/analyze/metadata", { latex });
     return data;
   }
 }
