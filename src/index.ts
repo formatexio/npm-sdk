@@ -26,4 +26,8 @@ export type {
   RenderEquationOptions,
   Project,
   ProjectFile,
+  WordCountResult,
+  DependenciesResult,
+  PackageStatus,
+  DocumentMetadata,
 } from "./types.js";

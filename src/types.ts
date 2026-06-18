@@ -191,3 +191,44 @@ export interface ProjectFile {
   mimeType: string;
   updatedAt: string;
 }
+
+// ── Document Intelligence ─────────────────────────────────────────────────────
+
+/** Result of a word count operation (via texcount, no compilation). */
+export interface WordCountResult {
+  textWords: number;
+  headerWords: number;
+  captionWords: number;
+  headers: number;
+  floats: number;
+  mathInline: number;
+  mathDisplay: number;
+  totalWords: number;
+  durationMs: number;
+}
+
+/** Package dependency analysis for a LaTeX document. */
+export interface DependenciesResult {
+  /** All packages declared in the document. */
+  packages: string[];
+  /** Packages found in TeX Live. */
+  available: string[];
+  /** Packages not found in TeX Live. */
+  unavailable: string[];
+  durationMs: number;
+}
+
+/** Availability of a single TeX package. */
+export interface PackageStatus {
+  name: string;
+  available: boolean;
+}
+
+/** Extracted metadata from a LaTeX document. */
+export interface DocumentMetadata {
+  title: string;
+  authors: string[];
+  date: string;
+  abstract: string;
+  keywords: string[];
+}

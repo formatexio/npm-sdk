@@ -627,4 +627,58 @@ export class FormaTexClient {
       updatedAt: (raw.updatedAt as string | undefined) ?? "",
     };
   }
+
+  // ── Document Intelligence ───────────────────────────────────────────────────
+
+  /**
+   * Count words, headers, floats, and math in a LaTeX document.
+   *
+   * Uses texcount — no compilation, no quota cost.
+   *
+   * @param latex - Full LaTeX source.
+   */
+  async wordCount(latex: string): Promise<WordCountResult> {
+    const data = await this._postJson<WordCountResult>("/api/v1/wordcount", { latex });
+    return data;
+  }
+
+  /**
+   * Extract all `\usepackage` declarations and check their availability in TeX Live.
+   *
+   * No compilation needed — pure static analysis.
+   *
+   * @param latex - Full LaTeX source.
+   */
+  async extractDependencies(latex: string): Promise<DependenciesResult> {
+    const data = await this._postJson<DependenciesResult>("/api/v1/dependencies", { latex });
+    return data;
+  }
+
+  /**
+   * Check whether one or more TeX packages are installed in TeX Live.
+   *
+   * @param names - Package names without `.sty` suffix. Maximum 50 per call.
+   * @returns Array of `{ name, available }` objects in the same order as *names*.
+   */
+  async checkPackages(names: string[]): Promise<PackageStatus[]> {
+    const joined = encodeURIComponent(names.join(","));
+    const data = await this._getJson<{ packages: PackageStatus[] }>(`/api/v1/packages?names=${joined}`);
+    return data.packages ?? [];
+  }
+
+  /**
+   * Extract structured metadata from a LaTeX document.
+   *
+   * Parses `\title`, `\author`, `\date`, the `abstract` environment,
+   * and `\keywords`. No compilation, no quota cost.
+   *
+   * Results are best-effort — custom macros or non-standard document classes
+   * may yield partial results.
+   *
+   * @param latex - Full LaTeX source.
+   */
+  async extractMetadata(latex: string): Promise<DocumentMetadata> {
+    const data = await this._postJson<DocumentMetadata>("/api/v1/extract/metadata", { latex });
+    return data;
+  }
 }
