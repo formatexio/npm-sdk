@@ -26,6 +26,9 @@ import type {
   RenderTikzOptions,
   ThumbnailOptions,
   ThumbnailResult,
+  BatchOptions,
+  MergeOptions,
+  BatchResult,
   Project,
   ProjectFile,
   WordCountResult,
@@ -782,5 +785,90 @@ export class FormaTexClient {
    */
   async compileToImage(latex: string, options: ThumbnailOptions = {}): Promise<ThumbnailResult> {
     return this.thumbnail(latex, options);
+  }
+
+  // ── Batch Generation ─────────────────────────────────────────────────────────
+
+  /**
+   * Compile a LaTeX template against an array of data rows, producing a ZIP of N PDFs.
+   *
+   * Each row is compiled independently in parallel on the server (up to 5 concurrent).
+   * Partial failures are non-fatal — failed rows are recorded in the manifest while
+   * successful PDFs are still included in the ZIP.
+   *
+   * Does not count against your monthly compilation quota.
+   * Rate limit: 10 requests/minute per API key. Max 50 rows per request.
+   *
+   * @param template - LaTeX source with `{{field}}` placeholders.
+   * @param data - Array of data rows (max 50). Each object's keys map to template vars.
+   * @param options - Engine and filename pattern.
+   *
+   * @example
+   * ```ts
+   * const result = await client.generateBatch(
+   *   certTemplate,
+   *   [{ name: "Alice", course: "LaTeX 101" }, { name: "Bob", course: "LaTeX 101" }],
+   *   { filename: "cert-{{name}}" },
+   * );
+   * writeFileSync("certificates.zip", result.zip);
+   * console.log(result.manifest); // { total: 2, success: 2, failed: 0, results: [...] }
+   * ```
+   */
+  async generateBatch(
+    template: string,
+    data: Record<string, unknown>[],
+    options: BatchOptions = {},
+  ): Promise<BatchResult> {
+    const { engine, filename } = options;
+    const body: Record<string, unknown> = { template, data };
+    if (engine) body.engine = engine;
+    if (filename) body.filename = filename;
+
+    const resp = await this._request("POST", "/api/v1/generate/batch", body, "application/json");
+    await this._raiseForStatus(resp);
+    const raw = await resp.json() as { zip: string; manifest: BatchResult["manifest"] };
+    return {
+      zip: Buffer.from(raw.zip, "base64"),
+      manifest: raw.manifest,
+    };
+  }
+
+  /**
+   * Compile a LaTeX template against CSV data, producing a ZIP of N PDFs.
+   *
+   * The first CSV row is the header; each subsequent row becomes one PDF.
+   * Column names map directly to template placeholders.
+   *
+   * Does not count against your monthly compilation quota.
+   * Rate limit: 10 requests/minute per API key. Max 50 data rows.
+   *
+   * @param template - LaTeX source with `{{column}}` placeholders.
+   * @param csv - CSV string; first row is the header.
+   * @param options - Engine and filename pattern.
+   *
+   * @example
+   * ```ts
+   * const csv = "name,course\nAlice,LaTeX 101\nBob,LaTeX 101";
+   * const result = await client.compileMerge(certTemplate, csv, { filename: "{{name}}" });
+   * writeFileSync("certificates.zip", result.zip);
+   * ```
+   */
+  async compileMerge(
+    template: string,
+    csv: string,
+    options: MergeOptions = {},
+  ): Promise<BatchResult> {
+    const { engine, filename } = options;
+    const body: Record<string, unknown> = { template, csv };
+    if (engine) body.engine = engine;
+    if (filename) body.filename = filename;
+
+    const resp = await this._request("POST", "/api/v1/compile/merge", body, "application/json");
+    await this._raiseForStatus(resp);
+    const raw = await resp.json() as { zip: string; manifest: BatchResult["manifest"] };
+    return {
+      zip: Buffer.from(raw.zip, "base64"),
+      manifest: raw.manifest,
+    };
   }
 }

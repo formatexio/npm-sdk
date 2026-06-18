@@ -36,4 +36,8 @@ export type {
   RenderTikzOptions,
   ThumbnailOptions,
   ThumbnailResult,
+  BatchOptions,
+  MergeOptions,
+  BatchResultItem,
+  BatchResult,
 } from "./types.js";

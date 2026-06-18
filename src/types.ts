@@ -299,3 +299,47 @@ export interface ThumbnailResult {
   /** Image height in pixels (0 if unknown). */
   height: number;
 }
+
+// ── Batch Generation ──────────────────────────────────────────────────────────
+
+/** Options for {@link FormaTexClient.generateBatch}. */
+export interface BatchOptions {
+  /** LaTeX engine: `"pdflatex"` (default), `"xelatex"`, or `"lualatex"`. */
+  engine?: string;
+  /**
+   * Filename template for each PDF. Supports `{{field}}`, `{{@index}}` (0-based),
+   * `{{@number}}` (1-based). `.pdf` is appended automatically.
+   * Default: `"document-{{@number}}"`.
+   */
+  filename?: string;
+}
+
+/** Options for {@link FormaTexClient.compileMerge}. */
+export interface MergeOptions {
+  /** LaTeX engine: `"pdflatex"` (default), `"xelatex"`, or `"lualatex"`. */
+  engine?: string;
+  /** Filename template. Default: `"document-{{@number}}"`. */
+  filename?: string;
+}
+
+/** One entry in a batch manifest's `results` array. */
+export interface BatchResultItem {
+  /** 0-based row index. */
+  index: number;
+  filename: string;
+  success: boolean;
+  /** Error message, only present when `success` is `false`. */
+  error?: string;
+}
+
+/** Result of a batch or merge operation. */
+export interface BatchResult {
+  /** Raw ZIP bytes containing all compiled PDFs and `manifest.json`. */
+  zip: Buffer;
+  manifest: {
+    total: number;
+    success: number;
+    failed: number;
+    results: BatchResultItem[];
+  };
+}
