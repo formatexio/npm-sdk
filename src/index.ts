@@ -33,4 +33,7 @@ export type {
   BibEntry,
   BibFormatted,
   BibResult,
+  RenderTikzOptions,
+  ThumbnailOptions,
+  ThumbnailResult,
 } from "./types.js";

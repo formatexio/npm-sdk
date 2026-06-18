@@ -259,3 +259,43 @@ export interface BibResult {
   count: number;
   durationMs: number;
 }
+
+// ── Rendering (TikZ / Thumbnail) ──────────────────────────────────────────────
+
+/** Options for {@link FormaTexClient.renderTikz}. */
+export interface RenderTikzOptions {
+  /** TikZ libraries to load (e.g. `["arrows.meta", "positioning"]`). Max 20. */
+  libraries?: string[];
+  /**
+   * Extra LaTeX packages to include (must be in the allowed list). Max 10.
+   * Allowed: `mhchem`, `siunitx`, `xcolor`, `physics`, `bm`,
+   * `mathtools`, `esint`, `cancel`, `chemfig`.
+   */
+  packages?: string[];
+  /** `"png"` (default) or `"svg"`. */
+  format?: string;
+  /** PNG resolution 72–600 (default 150). Ignored for SVG. */
+  dpi?: number;
+  /** `true` for transparent background. */
+  transparent?: boolean;
+}
+
+/** Options for {@link FormaTexClient.thumbnail} and {@link FormaTexClient.compileToImage}. */
+export interface ThumbnailOptions {
+  /** LaTeX engine: `"pdflatex"` (default), `"xelatex"`, or `"lualatex"`. */
+  engine?: string;
+  /** 1-indexed page number to rasterize (default: 1). */
+  page?: number;
+  /** PNG resolution 72–300 (default 150). */
+  dpi?: number;
+}
+
+/** Result of a thumbnail or compile-to-image operation. */
+export interface ThumbnailResult {
+  /** Raw PNG bytes. */
+  data: Buffer;
+  /** Image width in pixels (0 if unknown). */
+  width: number;
+  /** Image height in pixels (0 if unknown). */
+  height: number;
+}

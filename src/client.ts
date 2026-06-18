@@ -23,8 +23,17 @@ import type {
   RenderResult,
   RenderBatchResult,
   RenderEquationOptions,
+  RenderTikzOptions,
+  ThumbnailOptions,
+  ThumbnailResult,
   Project,
   ProjectFile,
+  WordCountResult,
+  DependenciesResult,
+  PackageStatus,
+  DocumentMetadata,
+  BibEntry,
+  BibResult,
 } from "./types.js";
 
 export const DEFAULT_BASE_URL: string =
@@ -694,5 +703,84 @@ export class FormaTexClient {
   async analyzeBibliography(bib: string): Promise<BibResult> {
     const data = await this._postJson<BibResult>("/api/v1/analyze/bibliography", { bib });
     return data;
+  }
+
+  // ── Rendering ───────────────────────────────────────────────────────────────
+
+  /**
+   * Render a TikZ diagram to a PNG or SVG image.
+   *
+   * The `tikz` parameter accepts the raw TikZ drawing commands — with or
+   * without the surrounding `\begin{tikzpicture}...\end{tikzpicture}` wrapper.
+   *
+   * Does not count against the monthly compilation quota.
+   *
+   * @param tikz - TikZ body to render.
+   * @param options - Format, DPI, libraries, packages, transparency.
+   *
+   * @example
+   * ```ts
+   * const result = await client.renderTikz(
+   *   "\\draw (0,0) -- (2,0) -- (1,1.732) -- cycle;",
+   *   { libraries: ["arrows.meta"], dpi: 200 }
+   * );
+   * require("fs").writeFileSync("triangle.png", result.data);
+   * ```
+   */
+  async renderTikz(tikz: string, options: RenderTikzOptions = {}): Promise<RenderResult> {
+    const { format = "png", dpi, transparent = false, libraries, packages } = options;
+    const body: Record<string, unknown> = { tikz, format, transparent };
+    if (dpi != null) body.dpi = dpi;
+    if (libraries?.length) body.libraries = libraries;
+    if (packages?.length) body.packages = packages;
+
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/render/tikz", body);
+    return {
+      data: Buffer.from(data.image as string, "base64"),
+      format: (data.format as string | undefined) ?? format,
+      width: (data.width as number | undefined) ?? 0,
+      height: (data.height as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Compile a full LaTeX document and return a rasterized PNG of the requested page.
+   *
+   * Useful for generating previews, cover images, or slide thumbnails without
+   * requiring the caller to handle PDF files. Does not count against the monthly
+   * compilation quota.
+   *
+   * @param latex - Full LaTeX source document.
+   * @param options - Engine, page number, DPI.
+   *
+   * @example
+   * ```ts
+   * const result = await client.thumbnail(latex, { page: 1, dpi: 150 });
+   * require("fs").writeFileSync("preview.png", result.data);
+   * ```
+   */
+  async thumbnail(latex: string, options: ThumbnailOptions = {}): Promise<ThumbnailResult> {
+    const { engine, page, dpi } = options;
+    const body: Record<string, unknown> = { latex };
+    if (engine) body.engine = engine;
+    if (page != null) body.page = page;
+    if (dpi != null) body.dpi = dpi;
+
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/thumbnail", body);
+    return {
+      data: Buffer.from(data.image as string, "base64"),
+      width: (data.width as number | undefined) ?? 0,
+      height: (data.height as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Alias for {@link thumbnail} — compile a LaTeX document and return a PNG image.
+   *
+   * @param latex - Full LaTeX source document.
+   * @param options - Engine, page number, DPI.
+   */
+  async compileToImage(latex: string, options: ThumbnailOptions = {}): Promise<ThumbnailResult> {
+    return this.thumbnail(latex, options);
   }
 }
