@@ -579,8 +579,9 @@ export class FormaTexClient {
   async pdfSplit(pdf: Buffer, _options: PDFSplitOptions = {}): Promise<PDFSplitResult> {
     const body = { pdf: pdf.toString("base64") };
     const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/split", body);
+    const rawPages = (data.pages as Array<{ page: number; pdf: string; size_bytes: number }> | undefined) ?? [];
     return {
-      pages: (data.pages as Array<{ page: number; pdf: string; size_bytes: number }> | undefined) ?? [],
+      pages: rawPages.map((p) => ({ page: p.page, pdf: p.pdf, sizeBytes: p.size_bytes })),
       totalPages: (data.total_pages as number | undefined) ?? 0,
       durationMs: (data.duration_ms as number | undefined) ?? 0,
     };
