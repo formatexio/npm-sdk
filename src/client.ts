@@ -20,6 +20,11 @@ import type {
   ConvertOptions,
   WaitOptions,
   FormaTexClientOptions,
+  RenderResult,
+  RenderBatchResult,
+  RenderEquationOptions,
+  Project,
+  ProjectFile,
 } from "./types.js";
 
 export const DEFAULT_BASE_URL: string =
@@ -153,6 +158,22 @@ export class FormaTexClient {
     const text = await resp.text();
     if (!text) return {} as T;
     return JSON.parse(text) as T;
+  }
+
+  private async _putRaw(path: string, body: Buffer, contentType: string): Promise<void> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const resp = await fetch(`${this.baseUrl}${path}`, {
+        method: "PUT",
+        headers: { "X-API-Key": this.apiKey, "Content-Type": contentType },
+        body,
+        signal: controller.signal,
+      });
+      await this._raiseForStatus(resp);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   // ── Sync Compilation ────────────────────────────────────────────────────────
@@ -417,6 +438,10 @@ export class FormaTexClient {
         (comp.limit as number | undefined) ??
         (data.compilationsLimit as number | undefined) ??
         0,
+      overage:
+        (comp.overage as number | undefined) ??
+        (data.overage as number | undefined) ??
+        0,
       periodStart:
         (period.start as string | undefined) ??
         (data.periodStart as string | undefined) ??
@@ -433,5 +458,173 @@ export class FormaTexClient {
   async listEngines(): Promise<Record<string, unknown>[]> {
     const data = await this._getJson<Record<string, unknown>>("/api/v1/engines");
     return (data.engines as Record<string, unknown>[] | undefined) ?? [];
+  }
+
+  // ── Compilation PDF ─────────────────────────────────────────────────────────
+
+  /**
+   * Download the PDF for a stored synchronous compilation by its ID.
+   *
+   * @param compilationId - The `jobId` from a {@link CompileResult}.
+   */
+  async getCompilationPdf(compilationId: string): Promise<Buffer> {
+    return this._getBytes(`/api/v1/compilations/${compilationId}/pdf`);
+  }
+
+  // ── Equation Rendering ───────────────────────────────────────────────────────
+
+  /**
+   * Render a LaTeX math string to a PNG or SVG image.
+   *
+   * Does **not** count against your monthly compilation quota.
+   * Rate limit: 60 requests/minute per API key.
+   *
+   * @example
+   * ```ts
+   * const result = await client.renderEquation("E = mc^2", { format: "svg" });
+   * writeFileSync("equation.svg", result.data);
+   * ```
+   */
+  async renderEquation(latex: string, options: RenderEquationOptions = {}): Promise<RenderResult> {
+    const { format = "png", dpi, display = false, transparent = false, padding, packages } = options;
+    const body: Record<string, unknown> = { latex, format, display, transparent };
+    if (dpi != null) body.dpi = dpi;
+    if (padding != null) body.padding = padding;
+    if (packages?.length) body.packages = packages;
+
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/render/equation", body);
+    return {
+      data: Buffer.from(data.image as string, "base64"),
+      format: (data.format as string | undefined) ?? format,
+      width: (data.width as number | undefined) ?? 0,
+      height: (data.height as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Render up to 20 equations in a single parallel request.
+   *
+   * Each item accepts the same keys as {@link renderEquation} options plus `latex`.
+   * Partial failures do not fail the whole batch — failed items have `error` set.
+   *
+   * @example
+   * ```ts
+   * const results = await client.renderEquations([
+   *   { latex: "E = mc^2", format: "png" },
+   *   { latex: "a^2 + b^2 = c^2", format: "svg", display: true },
+   * ]);
+   * ```
+   */
+  async renderEquations(equations: Record<string, unknown>[]): Promise<RenderBatchResult[]> {
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/render/equations", { equations });
+    return ((data.results as Record<string, unknown>[] | undefined) ?? []).map((item) => {
+      if (item.error) {
+        return { format: (item.format as string | undefined) ?? "", error: item.error as string };
+      }
+      return {
+        data: Buffer.from(item.image as string, "base64"),
+        format: (item.format as string | undefined) ?? "",
+        width: (item.width as number | undefined) ?? 0,
+        height: (item.height as number | undefined) ?? 0,
+      };
+    });
+  }
+
+  // ── Projects ─────────────────────────────────────────────────────────────────
+
+  /** List all projects belonging to this API key's user. */
+  async listProjects(): Promise<Project[]> {
+    const data = await this._getJson<Record<string, unknown>>("/api/v1/projects");
+    return ((data.projects as Record<string, unknown>[] | undefined) ?? []).map(this._parseProject);
+  }
+
+  /** Get a single project by ID. */
+  async getProject(projectId: string): Promise<Project> {
+    const data = await this._getJson<Record<string, unknown>>(`/api/v1/projects/${projectId}`);
+    return this._parseProject(data);
+  }
+
+  /** List file metadata for all files in a project. */
+  async listProjectFiles(projectId: string): Promise<ProjectFile[]> {
+    const data = await this._getJson<Record<string, unknown>>(`/api/v1/projects/${projectId}/files`);
+    return ((data.files as Record<string, unknown>[] | undefined) ?? []).map((f) => ({
+      path: (f.path as string | undefined) ?? "",
+      size: (f.size as number | undefined) ?? 0,
+      mimeType: (f.mimeType as string | undefined) ?? "",
+      updatedAt: (f.updatedAt as string | undefined) ?? "",
+    }));
+  }
+
+  /**
+   * Download the raw content of a project file.
+   *
+   * @param projectId - Project UUID.
+   * @param fileName - File path within the project (e.g. `"main.tex"`).
+   */
+  async readProjectFile(projectId: string, fileName: string): Promise<Buffer> {
+    return this._getBytes(`/api/v1/projects/${projectId}/files/${fileName.replace(/^\//, "")}`);
+  }
+
+  /**
+   * Create or overwrite a file in a project.
+   *
+   * @param projectId - Project UUID.
+   * @param fileName - File path within the project.
+   * @param content - Raw file bytes.
+   * @param contentType - MIME type (default `"text/plain"`).
+   */
+  async upsertProjectFile(
+    projectId: string,
+    fileName: string,
+    content: Buffer,
+    contentType = "text/plain",
+  ): Promise<void> {
+    await this._putRaw(
+      `/api/v1/projects/${projectId}/files/${fileName.replace(/^\//, "")}`,
+      content,
+      contentType,
+    );
+  }
+
+  /**
+   * Delete a file from a project.
+   *
+   * @param projectId - Project UUID.
+   * @param fileName - File path within the project.
+   */
+  async deleteProjectFile(projectId: string, fileName: string): Promise<void> {
+    await this._deleteJson(`/api/v1/projects/${projectId}/files/${fileName.replace(/^\//, "")}`);
+  }
+
+  /**
+   * Rename (move) a file within a project.
+   *
+   * @param projectId - Project UUID.
+   * @param oldPath - Current file path.
+   * @param newPath - New file path.
+   */
+  async renameProjectFile(projectId: string, oldPath: string, newPath: string): Promise<void> {
+    await this._postJson(`/api/v1/projects/${projectId}/files/rename`, { oldPath, newPath });
+  }
+
+  /**
+   * Export an entire project as a ZIP archive.
+   *
+   * @param projectId - Project UUID.
+   * @returns Raw ZIP bytes containing all project files.
+   */
+  async exportProject(projectId: string): Promise<Buffer> {
+    return this._getBytes(`/api/v1/projects/${projectId}/export`);
+  }
+
+  private _parseProject(raw: Record<string, unknown>): Project {
+    return {
+      id: (raw.id as string | undefined) ?? "",
+      name: (raw.name as string | undefined) ?? "",
+      mainFile: (raw.mainFile as string | undefined) ?? "",
+      fileCount: (raw.fileCount as number | undefined) ?? 0,
+      createdAt: (raw.createdAt as string | undefined) ?? "",
+      updatedAt: (raw.updatedAt as string | undefined) ?? "",
+    };
   }
 }

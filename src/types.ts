@@ -73,6 +73,8 @@ export interface UsageStats {
   plan: string;
   compilationsUsed: number;
   compilationsLimit: number;
+  /** Compilations used beyond the plan limit (pay-as-you-go). */
+  overage: number;
   periodStart: string;
   periodEnd: string;
   /** Full raw API response. */
@@ -125,4 +127,67 @@ export interface WaitOptions {
 export interface FormaTexClientOptions {
   /** Request timeout in milliseconds (default: 120_000). */
   timeout?: number;
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────────
+
+/** Result of a single equation render. */
+export interface RenderResult {
+  /** Raw PNG or SVG bytes. */
+  data: Buffer;
+  /** `"png"` or `"svg"`. */
+  format: string;
+  /** Image width in pixels (0 if unknown). */
+  width: number;
+  /** Image height in pixels (0 if unknown). */
+  height: number;
+}
+
+/** One item in a batch render response. Either `data` or `error` is set. */
+export interface RenderBatchResult {
+  data?: Buffer;
+  format: string;
+  width?: number;
+  height?: number;
+  error?: string;
+}
+
+/** Options for {@link FormaTexClient.renderEquation}. */
+export interface RenderEquationOptions {
+  /** `"png"` (default) or `"svg"`. */
+  format?: string;
+  /** PNG resolution 72–600. Ignored for SVG. */
+  dpi?: number;
+  /** `true` for display (centred) math, `false` for inline. */
+  display?: boolean;
+  /** `true` for transparent background. */
+  transparent?: boolean;
+  /** Border around the equation in pt (0–20). */
+  padding?: number;
+  /**
+   * Extra packages to load (max 5).
+   * Allowed: `mhchem`, `siunitx`, `xcolor`, `physics`, `bm`,
+   * `mathtools`, `esint`, `cancel`, `chemfig`, `tikz`.
+   */
+  packages?: string[];
+}
+
+// ── Projects ─────────────────────────────────────────────────────────────────
+
+/** A FormaTeX project. */
+export interface Project {
+  id: string;
+  name: string;
+  mainFile: string;
+  fileCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Metadata for a single file inside a project. */
+export interface ProjectFile {
+  path: string;
+  size: number;
+  mimeType: string;
+  updatedAt: string;
 }

@@ -21,4 +21,9 @@ export type {
   ConvertOptions,
   WaitOptions,
   FormaTexClientOptions,
+  RenderResult,
+  RenderBatchResult,
+  RenderEquationOptions,
+  Project,
+  ProjectFile,
 } from "./types.js";
