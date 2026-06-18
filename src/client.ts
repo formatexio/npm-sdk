@@ -13,11 +13,13 @@ import type {
   LintDiagnostic,
   SyntaxResult,
   ConvertResult,
+  ConvertFormat,
   UsageStats,
   FileEntry,
   CompileOptions,
   SmartCompileOptions,
   ConvertOptions,
+  MarkupCompileOptions,
   WaitOptions,
   FormaTexClientOptions,
   RenderResult,
@@ -37,6 +39,13 @@ import type {
   DocumentMetadata,
   BibEntry,
   BibResult,
+  PDFExtractResult,
+  PDFPagesOptions,
+  PDFPagesResult,
+  PDFCompressOptions,
+  PDFSplitOptions,
+  PDFSplitResult,
+  PDFBinaryResult,
 } from "./types.js";
 
 export const DEFAULT_BASE_URL: string =
@@ -426,11 +435,172 @@ export class FormaTexClient {
    * ```
    */
   async convert(latex: string, options: ConvertOptions = {}): Promise<ConvertResult> {
-    const { files } = options;
-    const body: Record<string, unknown> = { latex };
+    const { files, format = "docx" } = options;
+    const body: Record<string, unknown> = { latex, format };
     if (files?.length) body.files = files;
-    const docx = await this._postBytes("/api/v1/convert", body);
-    return { docx, sizeBytes: docx.length };
+    const json = await this._postJson<Record<string, unknown>>("/api/v1/convert", body);
+    const data = Buffer.from(json.data as string, "base64");
+    const result: ConvertResult = {
+      data,
+      format: (json.format as string | undefined) ?? format,
+      sizeBytes: (json.sizeBytes as number | undefined) ?? data.length,
+    };
+    if (format === "docx") result.docx = data;
+    return result;
+  }
+
+  // ── Markup → PDF ────────────────────────────────────────────────────────────
+
+  /**
+   * Compile a Markdown document to PDF.
+   *
+   * Pandoc converts Markdown to LaTeX, then compiles with the selected engine.
+   * Counts against monthly compilation quota.
+   */
+  async compileMarkdown(source: string, options: MarkupCompileOptions = {}): Promise<CompileResult> {
+    return this._compileMarkup("/api/v1/compile/markdown", source, options);
+  }
+
+  /**
+   * Compile an HTML document to PDF.
+   *
+   * Pandoc converts HTML to LaTeX, then compiles with the selected engine.
+   * Counts against monthly compilation quota.
+   */
+  async compileHtml(source: string, options: MarkupCompileOptions = {}): Promise<CompileResult> {
+    return this._compileMarkup("/api/v1/compile/html", source, options);
+  }
+
+  /**
+   * Compile a reStructuredText document to PDF.
+   *
+   * Pandoc converts RST to LaTeX, then compiles with the selected engine.
+   * Counts against monthly compilation quota.
+   */
+  async compileRst(source: string, options: MarkupCompileOptions = {}): Promise<CompileResult> {
+    return this._compileMarkup("/api/v1/compile/rst", source, options);
+  }
+
+  private async _compileMarkup(path: string, source: string, options: MarkupCompileOptions): Promise<CompileResult> {
+    const { engine = "pdflatex", runs, timeout } = options;
+    const body: Record<string, unknown> = { source, engine };
+    if (runs != null) body.runs = runs;
+    if (timeout != null) body.timeout = timeout;
+    const data = await this._postJson<Record<string, unknown>>(path, body);
+    return {
+      pdf: Buffer.from(data.pdf as string, "base64"),
+      engine: (data.engine as string | undefined) ?? engine,
+      durationMs: (data.duration as number | undefined) ?? 0,
+      sizeBytes: (data.sizeBytes as number | undefined) ?? 0,
+      jobId: (data.jobId as string | undefined) ?? "",
+      log: (data.log as string | undefined) ?? "",
+    };
+  }
+
+  // ── PDF Utilities ───────────────────────────────────────────────────────────
+
+  /**
+   * Extract plain text from a PDF using pdftotext.
+   *
+   * @param pdf - Raw PDF bytes
+   * @param page - Specific page to extract (0 = all pages)
+   */
+  async pdfExtract(pdf: Buffer, page = 0): Promise<PDFExtractResult> {
+    const body: Record<string, unknown> = {
+      pdf: pdf.toString("base64"),
+      page,
+    };
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/extract", body);
+    return {
+      text: (data.text as string | undefined) ?? "",
+      pages: (data.pages as number | undefined) ?? 0,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Render PDF pages to images using pdftoppm.
+   *
+   * @param pdf - Raw PDF bytes
+   */
+  async pdfPages(pdf: Buffer, options: PDFPagesOptions = {}): Promise<PDFPagesResult> {
+    const { dpi = 150, format = "png", first, last } = options;
+    const body: Record<string, unknown> = { pdf: pdf.toString("base64"), dpi, format };
+    if (first != null) body.first = first;
+    if (last != null) body.last = last;
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/pages", body);
+    return {
+      pages: (data.pages as Array<{ page: number; image: string }> | undefined) ?? [],
+      format: (data.format as string | undefined) ?? format,
+      totalPages: (data.total_pages as number | undefined) ?? 0,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Compress a PDF using Ghostscript.
+   *
+   * @param pdf - Raw PDF bytes
+   */
+  async pdfCompress(pdf: Buffer, options: PDFCompressOptions = {}): Promise<PDFBinaryResult> {
+    const { quality = "ebook" } = options;
+    const body = { pdf: pdf.toString("base64"), quality };
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/compress", body);
+    const outData = Buffer.from(data.pdf as string, "base64");
+    return {
+      data: outData,
+      sizeBytes: (data.size_bytes as number | undefined) ?? outData.length,
+      originalSizeBytes: (data.original_size_bytes as number | undefined) ?? pdf.length,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Merge multiple PDFs into one using qpdf.
+   *
+   * @param pdfs - Array of raw PDF bytes (2–20 items)
+   */
+  async pdfMerge(pdfs: Buffer[]): Promise<PDFBinaryResult> {
+    const body = { pdfs: pdfs.map((p) => p.toString("base64")) };
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/merge", body);
+    const outData = Buffer.from(data.pdf as string, "base64");
+    return {
+      data: outData,
+      sizeBytes: (data.size_bytes as number | undefined) ?? outData.length,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Split a PDF into individual page PDFs using qpdf.
+   *
+   * @param pdf - Raw PDF bytes (max 100 pages)
+   */
+  async pdfSplit(pdf: Buffer, _options: PDFSplitOptions = {}): Promise<PDFSplitResult> {
+    const body = { pdf: pdf.toString("base64") };
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/split", body);
+    return {
+      pages: (data.pages as Array<{ page: number; pdf: string; size_bytes: number }> | undefined) ?? [],
+      totalPages: (data.total_pages as number | undefined) ?? 0,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
+  }
+
+  /**
+   * Convert a PDF to PDF/A-1b using Ghostscript.
+   *
+   * @param pdf - Raw PDF bytes
+   */
+  async pdfPDFA(pdf: Buffer): Promise<PDFBinaryResult> {
+    const body = { pdf: pdf.toString("base64") };
+    const data = await this._postJson<Record<string, unknown>>("/api/v1/pdf/pdfa", body);
+    const outData = Buffer.from(data.pdf as string, "base64");
+    return {
+      data: outData,
+      sizeBytes: (data.size_bytes as number | undefined) ?? outData.length,
+      originalSizeBytes: (data.original_size_bytes as number | undefined) ?? pdf.length,
+      durationMs: (data.duration_ms as number | undefined) ?? 0,
+    };
   }
 
   // ── Usage / Engines ─────────────────────────────────────────────────────────

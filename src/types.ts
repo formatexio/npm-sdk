@@ -61,11 +61,85 @@ export interface SyntaxResult {
   warnings: unknown[];
 }
 
-/** Result of a LaTeX → DOCX conversion. */
+/** Result of a LaTeX document conversion. */
 export interface ConvertResult {
-  /** Raw DOCX bytes. */
-  docx: Buffer;
+  /** Raw output bytes (DOCX, HTML, EPUB, etc.). */
+  data: Buffer;
+  /** Output format (`"docx"`, `"html"`, `"epub"`, `"markdown"`, `"txt"`, `"odt"`). */
+  format: string;
   sizeBytes: number;
+  /** @deprecated Use `data` instead. Only set when `format` is `"docx"`. */
+  docx?: Buffer;
+}
+
+/** Result of a PDF text extraction. */
+export interface PDFExtractResult {
+  text: string;
+  pages: number;
+  durationMs: number;
+}
+
+/** One rendered page from a PDF. */
+export interface PDFPageImage {
+  page: number;
+  /** Base64-encoded image bytes. */
+  image: string;
+}
+
+/** Options for {@link FormaTexClient.pdfPages}. */
+export interface PDFPagesOptions {
+  /** PNG resolution 72–300 (default: 150). */
+  dpi?: number;
+  /** `"png"` (default) or `"jpeg"`. */
+  format?: string;
+  /** First page to render, 1-based (default: 1). */
+  first?: number;
+  /** Last page to render, 1-based (default: last page). */
+  last?: number;
+}
+
+/** Result of a PDF pages render. */
+export interface PDFPagesResult {
+  pages: PDFPageImage[];
+  format: string;
+  totalPages: number;
+  durationMs: number;
+}
+
+/** Options for {@link FormaTexClient.pdfCompress}. */
+export interface PDFCompressOptions {
+  /** `"screen"` (72 dpi) | `"ebook"` (150 dpi, default) | `"printer"` (300 dpi) | `"prepress"` (300 dpi, color). */
+  quality?: "screen" | "ebook" | "printer" | "prepress";
+}
+
+/** Options for {@link FormaTexClient.pdfSplit}. */
+export interface PDFSplitOptions {
+  // reserved for future per-page range selection
+}
+
+/** One page from a split PDF. */
+export interface PDFSplitPage {
+  page: number;
+  /** Base64-encoded PDF bytes for this page. */
+  pdf: string;
+  sizeBytes: number;
+}
+
+/** Result of a PDF split. */
+export interface PDFSplitResult {
+  pages: PDFSplitPage[];
+  totalPages: number;
+  durationMs: number;
+}
+
+/** Result of a binary PDF operation (compress, merge, pdfa). */
+export interface PDFBinaryResult {
+  /** Raw PDF bytes. */
+  data: Buffer;
+  sizeBytes: number;
+  /** Original PDF size before the operation (present for compress and pdfa). */
+  originalSizeBytes?: number;
+  durationMs: number;
 }
 
 /** Monthly usage statistics. */
@@ -110,9 +184,24 @@ export interface SmartCompileOptions {
   files?: FileEntry[];
 }
 
+/** Supported output formats for {@link FormaTexClient.convert}. */
+export type ConvertFormat = "docx" | "html" | "epub" | "markdown" | "txt" | "odt";
+
 /** Options for {@link FormaTexClient.convert}. */
 export interface ConvertOptions {
+  /** Output format (default: `"docx"`). */
+  format?: ConvertFormat;
   files?: FileEntry[];
+}
+
+/** Options for markup→PDF compile endpoints. */
+export interface MarkupCompileOptions {
+  /** LaTeX engine: `"pdflatex"` (default), `"xelatex"`, or `"lualatex"`. */
+  engine?: string;
+  /** Number of compiler passes (1–5). */
+  runs?: number;
+  /** Max compile time in seconds (plan-limited). */
+  timeout?: number;
 }
 
 /** Options for {@link FormaTexClient.waitForJob}. */
