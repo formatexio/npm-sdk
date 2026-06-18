@@ -232,3 +232,30 @@ export interface DocumentMetadata {
   abstract: string;
   keywords: string[];
 }
+
+/** Pre-formatted citation strings for a single BibTeX entry. */
+export interface BibFormatted {
+  apa: string;
+  mla: string;
+  chicago: string;
+}
+
+/** A single parsed BibTeX entry with structured fields and formatted citations. */
+export interface BibEntry {
+  key: string;
+  /** Entry type in lowercase: `article`, `book`, `inproceedings`, etc. */
+  type: string;
+  /** All field key-value pairs exactly as parsed. */
+  fields: Record<string, string>;
+  /** Author (or editor) names split into individual strings. */
+  authors: string[];
+  /** Best-effort formatted citations in APA, MLA, and Chicago styles. */
+  formatted: BibFormatted;
+}
+
+/** Result of a bibliography parse operation. */
+export interface BibResult {
+  entries: BibEntry[];
+  count: number;
+  durationMs: number;
+}

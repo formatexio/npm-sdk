@@ -30,4 +30,7 @@ export type {
   DependenciesResult,
   PackageStatus,
   DocumentMetadata,
+  BibEntry,
+  BibFormatted,
+  BibResult,
 } from "./types.js";

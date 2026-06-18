@@ -681,4 +681,18 @@ export class FormaTexClient {
     const data = await this._postJson<DocumentMetadata>("/api/v1/analyze/metadata", { latex });
     return data;
   }
+
+  /**
+   * Parse a BibTeX string into structured entries with APA, MLA, and Chicago citations.
+   *
+   * Handles `@article`, `@book`, `@inproceedings`, `@phdthesis`, `@incollection`,
+   * and all other entry types (generic fallback). Supports `@string` macros and
+   * `#` concatenation. No compilation, no quota cost.
+   *
+   * @param bib - Raw BibTeX string (one or more entries).
+   */
+  async analyzeBibliography(bib: string): Promise<BibResult> {
+    const data = await this._postJson<BibResult>("/api/v1/analyze/bibliography", { bib });
+    return data;
+  }
 }
