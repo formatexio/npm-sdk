@@ -194,6 +194,28 @@ export interface ConvertOptions {
   files?: FileEntry[];
 }
 
+/** Options for {@link FormaTexClient.compileZip}. */
+export interface ZipCompileOptions {
+  /** Entry-point `.tex` filename inside the ZIP (auto-detected if omitted). */
+  main?: string;
+  /** LaTeX engine (default: `"pdflatex"`). */
+  engine?: string;
+  /** Number of compiler passes (1–5). */
+  runs?: number;
+  /** Max compile time in seconds (plan-limited). */
+  timeout?: number;
+}
+
+/** Options for {@link FormaTexClient.compileIpynb}. */
+export interface IpynbCompileOptions {
+  /** LaTeX engine to use after notebook conversion (default: `"pdflatex"`). */
+  engine?: string;
+  /** Number of compiler passes (1–5). */
+  runs?: number;
+  /** Max compile time in seconds (plan-limited). */
+  timeout?: number;
+}
+
 /** Options for markup→PDF compile endpoints. */
 export interface MarkupCompileOptions {
   /** LaTeX engine: `"pdflatex"` (default), `"xelatex"`, or `"lualatex"`. */

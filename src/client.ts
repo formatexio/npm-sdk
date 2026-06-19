@@ -20,6 +20,8 @@ import type {
   SmartCompileOptions,
   ConvertOptions,
   MarkupCompileOptions,
+  ZipCompileOptions,
+  IpynbCompileOptions,
   WaitOptions,
   FormaTexClientOptions,
   RenderResult,
@@ -192,6 +194,23 @@ export class FormaTexClient {
         signal: controller.signal,
       });
       await this._raiseForStatus(resp);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async _postFormData<T = Record<string, unknown>>(path: string, formData: FormData): Promise<T> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const resp = await fetch(`${this.baseUrl}${path}`, {
+        method: "POST",
+        headers: { "X-API-Key": this.apiKey, "Accept": "application/json" },
+        body: formData,
+        signal: controller.signal,
+      });
+      await this._raiseForStatus(resp);
+      return resp.json() as Promise<T>;
     } finally {
       clearTimeout(timer);
     }
@@ -479,6 +498,55 @@ export class FormaTexClient {
    */
   async compileRst(source: string, options: MarkupCompileOptions = {}): Promise<CompileResult> {
     return this._compileMarkup("/api/v1/compile/rst", source, options);
+  }
+
+  /**
+   * Compile a multi-file LaTeX project from a ZIP archive.
+   *
+   * The ZIP should contain a root `.tex` file (auto-detected or named via `main`)
+   * plus any companion files. Counts against monthly compilation quota.
+   */
+  async compileZip(zip: Buffer, options: ZipCompileOptions = {}): Promise<CompileResult> {
+    const { main, engine = "pdflatex", runs, timeout } = options;
+    const fd = new FormData();
+    fd.append("file", new Blob([zip], { type: "application/zip" }), "archive.zip");
+    fd.append("engine", engine);
+    if (main != null) fd.append("main", main);
+    if (runs != null) fd.append("runs", String(runs));
+    if (timeout != null) fd.append("timeout", String(timeout));
+    const data = await this._postFormData<Record<string, unknown>>("/api/v1/compile/zip", fd);
+    return {
+      pdf: Buffer.from(data.pdf as string, "base64"),
+      engine: (data.engine as string | undefined) ?? engine,
+      durationMs: (data.duration as number | undefined) ?? 0,
+      sizeBytes: (data.sizeBytes as number | undefined) ?? 0,
+      jobId: (data.jobId as string | undefined) ?? "",
+      log: (data.log as string | undefined) ?? "",
+    };
+  }
+
+  /**
+   * Compile a Jupyter Notebook (`.ipynb`) to PDF.
+   *
+   * The notebook is converted to LaTeX then compiled with the selected engine.
+   * Counts against monthly compilation quota.
+   */
+  async compileIpynb(file: Buffer, options: IpynbCompileOptions = {}): Promise<CompileResult> {
+    const { engine = "pdflatex", runs, timeout } = options;
+    const fd = new FormData();
+    fd.append("file", new Blob([file], { type: "application/json" }), "notebook.ipynb");
+    fd.append("engine", engine);
+    if (runs != null) fd.append("runs", String(runs));
+    if (timeout != null) fd.append("timeout", String(timeout));
+    const data = await this._postFormData<Record<string, unknown>>("/api/v1/compile/ipynb", fd);
+    return {
+      pdf: Buffer.from(data.pdf as string, "base64"),
+      engine: (data.engine as string | undefined) ?? engine,
+      durationMs: (data.duration as number | undefined) ?? 0,
+      sizeBytes: (data.sizeBytes as number | undefined) ?? 0,
+      jobId: (data.jobId as string | undefined) ?? "",
+      log: (data.log as string | undefined) ?? "",
+    };
   }
 
   private async _compileMarkup(path: string, source: string, options: MarkupCompileOptions): Promise<CompileResult> {

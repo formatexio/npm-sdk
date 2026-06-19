@@ -21,6 +21,8 @@ export type {
   SmartCompileOptions,
   ConvertOptions,
   MarkupCompileOptions,
+  ZipCompileOptions,
+  IpynbCompileOptions,
   WaitOptions,
   FormaTexClientOptions,
   RenderResult,
